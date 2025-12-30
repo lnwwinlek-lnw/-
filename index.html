@@ -3,247 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจำลองเลขปิดรับ - Official Simulator</title>
+    <title>ระบบดึงเลขปิดรับ Real-time</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
-        .loading-spinner { border: 4px solid rgba(0,0,0,.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #db2777; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .closed-tag { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin: 2px; display: inline-block; }
-        .pulse-red { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        body { font-family: 'Kanit', sans-serif; background: #f4f7f6; }
+        .closed-number {
+            background: linear-gradient(135deg, #ff4b2b, #ff416c);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-live {
+            width: 10px;
+            height: 10px;
+            background: #2ecc71;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .loading-bar {
+            height: 4px;
+            background: #db2777;
+            width: 0%;
+            transition: width 0.3s;
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-100">
 
-    <div id="login-section" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-pink-600">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-pink-700">เข้าสู่ระบบ</h1>
-                <p class="text-gray-500">Simulator เลขปิดรับ</p>
-            </div>
-            <form id="login-form" class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้งาน</label>
-                    <input type="text" id="username" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 shadow-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
-                    <input type="password" id="password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 shadow-sm">
-                </div>
-                <p id="login-error" class="text-red-500 text-sm h-5 text-center"></p>
-                <button type="submit" id="login-btn" class="w-full bg-pink-600 text-white py-3 rounded-lg font-bold hover:bg-pink-700 transition duration-200">
-                    เข้าสู่ระบบ
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <div id="main-app" class="hidden container mx-auto p-4 md:p-8">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm">
+    <div class="max-w-6xl mx-auto p-4">
+        <header class="bg-white p-6 rounded-2xl shadow-sm mb-6 flex flex-col md:flex-row justify-between items-center border-b-4 border-pink-500">
             <div>
-                <h1 class="text-3xl font-bold text-pink-700">เลขปิดรับ Simulator</h1>
-                <p id="welcome-msg" class="text-gray-600 font-medium"></p>
+                <h1 class="text-3xl font-bold text-gray-800">ระบบแสดงเลขปิดรับ <span class="text-pink-600">LIVE</span></h1>
+                <p class="text-gray-500 text-sm"><span class="status-live"></span> เชื่อมต่อข้อมูลเรียลไทม์จากเซิร์ฟเวอร์หลัก</p>
             </div>
-            <div class="flex gap-2">
-                <button id="logout-btn" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 font-bold transition">
-                    <i class="fas fa-sign-out-alt mr-2"></i>ออกจากระบบ
+            <div class="mt-4 md:mt-0 text-right">
+                <div class="text-xs text-gray-400 mb-1">อัปเดตถัดไปใน: <span id="countdown">10</span> วินาที</div>
+                <button onclick="updateData()" class="bg-pink-600 hover:bg-pink-700 text-white px-5 py-2 rounded-xl font-bold transition flex items-center shadow-lg">
+                    <i class="fas fa-sync-alt mr-2" id="sync-icon"></i> รีเฟรชตอนนี้
                 </button>
             </div>
         </header>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <label class="font-bold text-gray-700">เลือกวันที่:</label>
-                <input type="text" id="date-picker" class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-pink-500 outline-none">
-            </div>
-            <div class="flex items-center text-yellow-600 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-100">
-                <i class="fas fa-bullhorn mr-3 animate-bounce"></i>
-                <span class="text-sm font-medium">ระบบอัปเดตเลขปิดอัตโนมัติทุก 1 นาที</span>
+        <div class="loading-bar-container bg-gray-200 w-full mb-6 rounded-full overflow-hidden">
+            <div id="loading-progress" class="loading-bar"></div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 border-b">
+                            <th class="p-5 font-bold uppercase text-sm">รายการหวย / รอบ</th>
+                            <th class="p-5 font-bold uppercase text-sm">ประเภทเลข</th>
+                            <th class="p-5 font-bold uppercase text-sm">เลขที่ระบบปิดรับ</th>
+                            <th class="p-5 font-bold uppercase text-sm text-center">สถานะการรับ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-list" class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="4" class="p-20 text-center text-gray-400">
+                                <i class="fas fa-circle-notch fa-spin text-4xl mb-3 text-pink-500"></i>
+                                <p>กำลังเชื่อมต่อ API และดึงข้อมูลล่าสุด...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div id="display-container" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div id="loader" class="flex flex-col items-center py-20">
-                <div class="loading-spinner mb-4"></div>
-                <p class="text-gray-500 animate-pulse">กำลังดึงข้อมูลเลขปิดรับล่าสุด...</p>
-            </div>
-            <div id="data-table" class="hidden overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-pink-600 text-white">
-                            <th class="p-4 font-bold uppercase tracking-wider">รายการหวย</th>
-                            <th class="p-4 font-bold uppercase tracking-wider">ประเภท</th>
-                            <th class="p-4 font-bold uppercase tracking-wider">เลขที่ปิดรับ</th>
-                            <th class="p-4 font-bold uppercase tracking-wider text-center">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="numbers-body" class="divide-y divide-gray-100">
-                        </tbody>
-                </table>
-            </div>
-            <div id="no-data" class="hidden py-20 text-center">
-                <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
-                <p class="text-gray-500">ไม่พบข้อมูลเลขปิดรับในวันที่เลือก</p>
-            </div>
-        </div>
+        <footer class="mt-8 text-center text-gray-400 text-xs">
+            <p>เชื่อมต่อกับระบบ: https://numberclose.testder.com/api/</p>
+            <p>© 2025 ระบบจำลองเลขปิดรับ - พัฒนาเพื่อการแสดงผลความเร็วสูง</p>
+        </footer>
     </div>
 
     <script>
-        // === CONFIGURATION ===
-        const API_URL = 'https://numberclose.testder.com/api/';
-        let currentUser = null;
-        let authToken = localStorage.getItem('auth_token');
+        const API_URL = 'https://numberclose.testder.com/api/get_closed_numbers.php?date=today';
+        let countdownValue = 10;
+        let timer;
 
-        // === DOM ELEMENTS ===
-        const loginSection = document.getElementById('login-section');
-        const mainApp = document.getElementById('main-app');
-        const loginForm = document.getElementById('login-form');
-        const numbersBody = document.getElementById('numbers-body');
-        const loader = document.getElementById('loader');
-        const dataTable = document.getElementById('data-table');
-        const noData = document.getElementById('no-data');
-
-        // === INITIALIZE ===
-        document.addEventListener('DOMContentLoaded', () => {
-            initFlatpickr();
-            if (authToken) {
-                // ถ้ามี Token ให้ลองดึงข้อมูลเลย (ในระบบจริงควรมี API ตรวจสอบ Token)
-                showMain();
-            }
-        });
-
-        function initFlatpickr() {
-            flatpickr("#date-picker", {
-                locale: "th",
-                dateFormat: "Y-m-d",
-                defaultDate: "today",
-                onChange: (selectedDates, dateStr) => {
-                    fetchClosedNumbers(dateStr);
-                }
-            });
-        }
-
-        // === LOGIN LOGIC ===
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const loginBtn = document.getElementById('login-btn');
-            const errorEl = document.getElementById('login-error');
+        async function updateData() {
+            const syncIcon = document.getElementById('sync-icon');
+            const dataList = document.getElementById('data-list');
+            const progress = document.getElementById('loading-progress');
             
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบ...';
-            errorEl.innerText = '';
-
-            const payload = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value
-            };
+            syncIcon.classList.add('fa-spin');
+            progress.style.width = '30%';
 
             try {
-                const response = await fetch(`${API_URL}login.php`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                // ดึงข้อมูลจริงจาก API
+                const response = await fetch(API_URL);
+                progress.style.width = '70%';
+                
+                if (!response.ok) throw new Error('API_ERROR');
+                
                 const data = await response.json();
+                renderTable(data.items);
+                
+                progress.style.width = '100%';
+                setTimeout(() => progress.style.width = '0%', 500);
 
-                if (data.success) {
-                    localStorage.setItem('auth_token', data.token);
-                    localStorage.setItem('user_info', JSON.stringify(data.user));
-                    authToken = data.token;
-                    showMain();
-                } else {
-                    errorEl.innerText = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-                }
-            } catch (err) {
-                errorEl.innerText = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                // หากดึงไม่ได้ ให้แสดงข้อความแจ้งเตือน (แต่ในโค้ดนี้เราจะให้มันพยายามต่อไป)
+                dataList.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-red-500 font-bold bg-red-50">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> ไม่สามารถดึงข้อมูลได้ (โปรดตรวจสอบสิทธิ์ CORS หรือการเชื่อมต่อเน็ต)
+                </td></tr>`;
             } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerText = 'เข้าสู่ระบบ';
-            }
-        });
-
-        // === DATA FETCHING ===
-        async function fetchClosedNumbers(date = 'today') {
-            showLoader();
-            try {
-                const response = await fetch(`${API_URL}get_closed_numbers.php?date=${date}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                const data = await response.json();
-
-                if (data.success && data.items.length > 0) {
-                    renderTable(data.items);
-                } else {
-                    showNoData();
-                }
-            } catch (err) {
-                console.error("Fetch Error:", err);
-                showNoData();
+                syncIcon.classList.remove('fa-spin');
+                resetCountdown();
             }
         }
 
         function renderTable(items) {
-            numbersBody.innerHTML = '';
-            items.forEach(item => {
-                const row = document.createElement('tr');
-                row.className = "hover:bg-gray-50 transition border-b border-gray-100";
-                
-                // แปลง array เลขเป็นป้ายสีแดง
-                const tags = item.numbers.map(num => `<span class="closed-tag">${num}</span>`).join('');
-                
-                row.innerHTML = `
-                    <td class="p-4 font-bold text-gray-800">${item.lotto_name}</td>
-                    <td class="p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type_name}</span></td>
-                    <td class="p-4">${tags}</td>
-                    <td class="p-4 text-center">
-                        <span class="text-red-500 font-bold pulse-red"><i class="fas fa-ban mr-1"></i>ปิดรับ</span>
-                    </td>
-                `;
-                numbersBody.appendChild(row);
-            });
-            loader.classList.add('hidden');
-            noData.classList.add('hidden');
-            dataTable.classList.remove('hidden');
-        }
-
-        // === UI HELPERS ===
-        function showMain() {
-            loginSection.classList.add('hidden');
-            mainApp.classList.remove('hidden');
-            const user = JSON.parse(localStorage.getItem('user_info'));
-            document.getElementById('welcome-msg').innerText = `สวัสดีคุณ ${user?.display_name || 'สมาชิก'}`;
-            fetchClosedNumbers(); // โหลดข้อมูลครั้งแรก
+            const dataList = document.getElementById('data-list');
             
-            // ตั้งเวลา Refresh ทุก 1 นาที
-            setInterval(() => {
-                const currentDate = document.getElementById('date-picker').value;
-                fetchClosedNumbers(currentDate);
-            }, 60000);
+            if (!items || items.length === 0) {
+                dataList.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-gray-400">ไม่มีเลขปิดรับในขณะนี้</td></tr>';
+                return;
+            }
+
+            dataList.innerHTML = ''; // ล้างตารางเดิม
+
+            items.forEach(item => {
+                const numbersHtml = item.numbers.map(n => `<span class="closed-number">${n}</span>`).join('');
+                const row = `
+                    <tr class="hover:bg-pink-50 transition-all border-b">
+                        <td class="p-5 font-bold text-gray-700">
+                            <i class="fas fa-ticket-alt mr-2 text-pink-400"></i> ${item.lotto_name}
+                        </td>
+                        <td class="p-5">
+                            <span class="bg-gray-100 text-gray-500 px-3 py-1 rounded-md text-xs font-bold">${item.type_name}</span>
+                        </td>
+                        <td class="p-5">${numbersHtml}</td>
+                        <td class="p-5 text-center">
+                            <span class="text-red-600 font-bold animate-pulse">
+                                <i class="fas fa-times-circle mr-1"></i> ปิดรับแทง
+                            </span>
+                        </td>
+                    </tr>
+                `;
+                dataList.insertAdjacentHTML('beforeend', row);
+            });
         }
 
-        function showLoader() {
-            loader.classList.remove('hidden');
-            dataTable.classList.add('hidden');
-            noData.classList.add('hidden');
+        function resetCountdown() {
+            clearInterval(timer);
+            countdownValue = 10;
+            document.getElementById('countdown').innerText = countdownValue;
+            
+            timer = setInterval(() => {
+                countdownValue--;
+                document.getElementById('countdown').innerText = countdownValue;
+                if (countdownValue <= 0) {
+                    updateData();
+                }
+            }, 1000);
         }
 
-        function showNoData() {
-            loader.classList.add('hidden');
-            dataTable.classList.add('hidden');
-            noData.classList.remove('hidden');
-        }
-
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            localStorage.clear();
-            window.location.reload();
-        });
-
+        // เริ่มทำงานครั้งแรก
+        window.onload = updateData;
     </script>
 </body>
 </html>
