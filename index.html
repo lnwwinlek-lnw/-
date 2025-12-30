@@ -3,140 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เลขปิดรับ Simulator - Real-time</title>
+    <title>ระบบจำลองเลขปิดรับ - Official Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f9fafb; }
-        .loading-spinner { border: 4px solid rgba(0,0,0,.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #ec4899; animation: spin 1s ease infinite; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
+        .loading-spinner { border: 4px solid rgba(0,0,0,.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #db2777; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .closed-number-tag { display: inline-flex; align-items: center; background-color: #ef4444; color: white; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 700; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2); }
-        .system-notification-box { display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: #fffbeb; border: 2px solid #fde68a; border-radius: 0.75rem; color: #ca8a04; animation: pulse-light 2.5s infinite; }
-        @keyframes pulse-light { 0%, 100% { border-color: #fde68a; } 50% { border-color: #facc15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.3); } }
+        .closed-tag { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin: 2px; display: inline-block; }
+        .pulse-red { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
 <body>
 
-    <div class="max-w-5xl mx-auto p-4 md:p-8">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-ban text-red-500 mr-2"></i>ระบบเลขปิดรับ</h1>
-                <p class="text-gray-500 text-sm">ข้อมูลอัปเดตจากเซิร์ฟเวอร์หลักแบบ Real-time</p>
+    <div id="login-section" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-pink-600">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-pink-700">เข้าสู่ระบบ</h1>
+                <p class="text-gray-500">Simulator เลขปิดรับ</p>
             </div>
-            <div class="flex items-center gap-3">
-                <span id="update-status" class="text-xs font-medium px-3 py-1 bg-green-100 text-green-700 rounded-full">
-                    <i class="fa-solid fa-circle-check mr-1"></i> เชื่อมต่อแล้ว
-                </span>
-                <button onclick="fetchData()" class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm transition">
-                    <i class="fa-solid fa-rotate text-gray-600"></i>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้งาน</label>
+                    <input type="text" id="username" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
+                    <input type="password" id="password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 shadow-sm">
+                </div>
+                <p id="login-error" class="text-red-500 text-sm h-5 text-center"></p>
+                <button type="submit" id="login-btn" class="w-full bg-pink-600 text-white py-3 rounded-lg font-bold hover:bg-pink-700 transition duration-200">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden container mx-auto p-4 md:p-8">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm">
+            <div>
+                <h1 class="text-3xl font-bold text-pink-700">เลขปิดรับ Simulator</h1>
+                <p id="welcome-msg" class="text-gray-600 font-medium"></p>
+            </div>
+            <div class="flex gap-2">
+                <button id="logout-btn" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 font-bold transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i>ออกจากระบบ
                 </button>
             </div>
-        </div>
+        </header>
 
-        <div class="system-notification-box mb-6">
-            <p class="text-sm font-medium"><i class="fa-solid fa-triangle-exclamation mr-2"></i> ขณะนี้ระบบกำลังแสดงรายการเลขที่ปิดรับแทงจากทุกรอบหวย</p>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left table-fixed">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="px-6 py-4 text-sm font-bold text-gray-600 w-1/3">ชื่อรายการหวย</th>
-                            <th class="px-6 py-4 text-sm font-bold text-gray-600">เลขที่ปิดรับแทง</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lotto-table-body" class="divide-y divide-gray-50">
-                        <tr id="loading-row">
-                            <td colspan="2" class="py-20">
-                                <div class="flex flex-col items-center justify-center">
-                                    <div class="loading-spinner mb-4"></div>
-                                    <p class="text-gray-400 text-sm">กำลังดึงข้อมูล...</p>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="bg-white p-6 rounded-2xl shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <label class="font-bold text-gray-700">เลือกวันที่:</label>
+                <input type="text" id="date-picker" class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-pink-500 outline-none">
+            </div>
+            <div class="flex items-center text-yellow-600 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-100">
+                <i class="fas fa-bullhorn mr-3 animate-bounce"></i>
+                <span class="text-sm font-medium">ระบบอัปเดตเลขปิดอัตโนมัติทุก 1 นาที</span>
             </div>
         </div>
 
-        <div class="mt-6 text-center text-gray-400 text-xs">
-            อ้างอิงข้อมูลจาก: numberclose.testder.com | อัปเดตเมื่อ: <span id="last-update">--:--:--</span>
+        <div id="display-container" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div id="loader" class="flex flex-col items-center py-20">
+                <div class="loading-spinner mb-4"></div>
+                <p class="text-gray-500 animate-pulse">กำลังดึงข้อมูลเลขปิดรับล่าสุด...</p>
+            </div>
+            <div id="data-table" class="hidden overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-pink-600 text-white">
+                            <th class="p-4 font-bold uppercase tracking-wider">รายการหวย</th>
+                            <th class="p-4 font-bold uppercase tracking-wider">ประเภท</th>
+                            <th class="p-4 font-bold uppercase tracking-wider">เลขที่ปิดรับ</th>
+                            <th class="p-4 font-bold uppercase tracking-wider text-center">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="numbers-body" class="divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
+            <div id="no-data" class="hidden py-20 text-center">
+                <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500">ไม่พบข้อมูลเลขปิดรับในวันที่เลือก</p>
+            </div>
         </div>
     </div>
 
     <script>
-        // ใช้ Proxy เพื่อหลีกเลี่ยง CORS Error
-        const PROXY_URL = "https://api.allorigins.win/raw?url=";
-        const API_URL = "https://numberclose.testder.com/";
-        const TOKEN = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJOdW1iZXJDbG9zZSBTaW11bGF0b3IiLCJhdWQiOiJOdW1iZXJDbG9zZSBTaW11bGF0b3IiLCJpYXQiOjE3NjcwOTUxMTEsImV4cCI6MTc2NzM1NDMxMSwianRpIjoiN2VmYWU1NzkwMjExZmRlMjBhNGY1NGFjY2E1MDZhM2QiLCJkYXRhIjp7ImlkIjo4NSwidXNlcm5hbWUiOiJ0ZXN0MDEiLCJyb2xlIjoidGVzdCJ9fQ.2D11ViSIgBugtiJBtseKWCYVydcLmf-_StdbSYEAfdE";
+        // === CONFIGURATION ===
+        const API_URL = 'https://numberclose.testder.com/api/';
+        let currentUser = null;
+        let authToken = localStorage.getItem('auth_token');
 
-        async function fetchData() {
-            const tableBody = document.getElementById('lotto-table-body');
-            const statusTag = document.getElementById('update-status');
-            
-            try {
-                const response = await fetch(PROXY_URL + encodeURIComponent(API_URL), {
-                    method: 'GET',
-                    headers: { 'Authorization': TOKEN }
-                });
+        // === DOM ELEMENTS ===
+        const loginSection = document.getElementById('login-section');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const numbersBody = document.getElementById('numbers-body');
+        const loader = document.getElementById('loader');
+        const dataTable = document.getElementById('data-table');
+        const noData = document.getElementById('no-data');
 
-                if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว');
+        // === INITIALIZE ===
+        document.addEventListener('DOMContentLoaded', () => {
+            initFlatpickr();
+            if (authToken) {
+                // ถ้ามี Token ให้ลองดึงข้อมูลเลย (ในระบบจริงควรมี API ตรวจสอบ Token)
+                showMain();
+            }
+        });
 
-                const data = await response.json();
-                renderData(data);
-                
-                // อัปเดตเวลา
-                document.getElementById('last-update').innerText = new Date().toLocaleTimeString('th-TH');
-                statusTag.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> เชื่อมต่อแล้ว';
-                statusTag.className = "text-xs font-medium px-3 py-1 bg-green-100 text-green-700 rounded-full";
-
-            } catch (error) {
-                console.error(error);
-                statusTag.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> เชื่อมต่อไม่ได้';
-                statusTag.className = "text-xs font-medium px-3 py-1 bg-red-100 text-red-700 rounded-full";
-                
-                if (tableBody.innerHTML.includes('loading-row')) {
-                    tableBody.innerHTML = '<tr><td colspan="2" class="py-10 text-center text-red-400 text-sm">ไม่สามารถโหลดข้อมูลได้ (กรุณาตรวจสอบ Token)</td></tr>';
+        function initFlatpickr() {
+            flatpickr("#date-picker", {
+                locale: "th",
+                dateFormat: "Y-m-d",
+                defaultDate: "today",
+                onChange: (selectedDates, dateStr) => {
+                    fetchClosedNumbers(dateStr);
                 }
+            });
+        }
+
+        // === LOGIN LOGIC ===
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loginBtn = document.getElementById('login-btn');
+            const errorEl = document.getElementById('login-error');
+            
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบ...';
+            errorEl.innerText = '';
+
+            const payload = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}login.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user_info', JSON.stringify(data.user));
+                    authToken = data.token;
+                    showMain();
+                } else {
+                    errorEl.innerText = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                }
+            } catch (err) {
+                errorEl.innerText = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerText = 'เข้าสู่ระบบ';
+            }
+        });
+
+        // === DATA FETCHING ===
+        async function fetchClosedNumbers(date = 'today') {
+            showLoader();
+            try {
+                const response = await fetch(`${API_URL}get_closed_numbers.php?date=${date}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+
+                if (data.success && data.items.length > 0) {
+                    renderTable(data.items);
+                } else {
+                    showNoData();
+                }
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                showNoData();
             }
         }
 
-        function renderData(data) {
-            const tableBody = document.getElementById('lotto-table-body');
-            const items = Array.isArray(data) ? data : (data.results || data.data || []);
-
-            if (items.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="2" class="py-10 text-center text-gray-400">ยังไม่มีข้อมูลเลขปิดรับในขณะนี้</td></tr>';
-                return;
-            }
-
-            tableBody.innerHTML = items.map(item => `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-5">
-                        <div class="font-bold text-gray-800 text-lg">${item.lotto_name || 'ไม่ระบุชื่อ'}</div>
-                        <div class="text-[10px] text-pink-500 font-bold uppercase tracking-wider mt-1">Status: Closed</div>
+        function renderTable(items) {
+            numbersBody.innerHTML = '';
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-gray-50 transition border-b border-gray-100";
+                
+                // แปลง array เลขเป็นป้ายสีแดง
+                const tags = item.numbers.map(num => `<span class="closed-tag">${num}</span>`).join('');
+                
+                row.innerHTML = `
+                    <td class="p-4 font-bold text-gray-800">${item.lotto_name}</td>
+                    <td class="p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type_name}</span></td>
+                    <td class="p-4">${tags}</td>
+                    <td class="p-4 text-center">
+                        <span class="text-red-500 font-bold pulse-red"><i class="fas fa-ban mr-1"></i>ปิดรับ</span>
                     </td>
-                    <td class="px-6 py-5">
-                        <div class="flex flex-wrap gap-2">
-                            ${(item.numbers || []).map(num => `
-                                <span class="closed-number-tag">
-                                    ${num}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+                `;
+                numbersBody.appendChild(row);
+            });
+            loader.classList.add('hidden');
+            noData.classList.add('hidden');
+            dataTable.classList.remove('hidden');
         }
 
-        // เริ่มดึงข้อมูลเมื่อเปิดหน้าเว็บ
-        window.onload = () => {
-            fetchData();
-            // อัปเดตอัตโนมัติทุกๆ 1 นาที
-            setInterval(fetchData, 60000);
-        };
+        // === UI HELPERS ===
+        function showMain() {
+            loginSection.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            const user = JSON.parse(localStorage.getItem('user_info'));
+            document.getElementById('welcome-msg').innerText = `สวัสดีคุณ ${user?.display_name || 'สมาชิก'}`;
+            fetchClosedNumbers(); // โหลดข้อมูลครั้งแรก
+            
+            // ตั้งเวลา Refresh ทุก 1 นาที
+            setInterval(() => {
+                const currentDate = document.getElementById('date-picker').value;
+                fetchClosedNumbers(currentDate);
+            }, 60000);
+        }
+
+        function showLoader() {
+            loader.classList.remove('hidden');
+            dataTable.classList.add('hidden');
+            noData.classList.add('hidden');
+        }
+
+        function showNoData() {
+            loader.classList.add('hidden');
+            dataTable.classList.add('hidden');
+            noData.classList.remove('hidden');
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.reload();
+        });
+
     </script>
 </body>
 </html>
